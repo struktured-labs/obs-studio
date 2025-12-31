@@ -259,7 +259,8 @@ private:
 	std::vector<OBSSignal> signalHandlers;
 
 	bool loaded = false;
-	bool closing = false;
+	bool isClosing_ = false;
+	bool isClosePromptOpen_ = false;
 	bool handledShutdown = false;
 
 	// TODO: Remove, orphaned variable
@@ -300,6 +301,7 @@ private:
 	void LoadProject();
 
 public slots:
+	void close();
 	void UpdatePatronJson(const QString &text, const QString &error);
 	void UpdateEditMenu();
 	void applicationShutdown() noexcept;
@@ -325,12 +327,22 @@ public:
 
 	void SetDisplayAffinity(QWindow *window);
 
-	inline bool Closing() { return closing; }
+	void saveAll();
+	bool shouldPromptForClose();
+	inline bool isClosing() { return isClosing_; }
+	inline bool isClosePromptOpen() { return isClosePromptOpen_; }
+	void closeWindow();
 
 protected:
+	bool isReadyToClose();
+	bool promptToClose();
+
 	virtual void closeEvent(QCloseEvent *event) override;
 	virtual bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
 	virtual void changeEvent(QEvent *event) override;
+
+signals:
+	void mainWindowClosed();
 
 	/* -------------------------------------
 	 * MARK: - OAuth
@@ -444,6 +456,7 @@ public:
 	void RemoveDockWidget(const QString &name);
 	bool IsDockObjectNameUsed(const QString &name);
 	void AddCustomDockWidget(QDockWidget *dock);
+	void setDockCornersVertical(bool vertical);
 
 private slots:
 	void on_resetDocks_triggered(bool force = false);
@@ -458,7 +471,7 @@ private slots:
 	 */
 private:
 	void AddDropSource(const char *file, DropType image);
-	void AddDropURL(const char *url, QString &name, obs_data_t *settings, const obs_video_info &ovi);
+	void AddDropURL(QUrl url, QString &name, obs_data_t *settings, const obs_video_info &ovi);
 	void ConfirmDropUrl(const QString &url);
 	void dragEnterEvent(QDragEnterEvent *event) override;
 	void dragLeaveEvent(QDragLeaveEvent *event) override;
@@ -1123,6 +1136,7 @@ private:
 	std::vector<OBS::Canvas> canvases;
 
 	static void CanvasRemoved(void *data, calldata_t *params);
+	void ClearCanvases();
 
 public:
 	const std::vector<OBS::Canvas> &GetCanvases() const noexcept { return canvases; }

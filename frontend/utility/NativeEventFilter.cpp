@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2025 by Taylor Giampaolo <warchamp7@obsproject.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,24 +15,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
-#pragma once
+#include "NativeEventFilter.hpp"
 
-#include <graphics/shader-parser.h>
+namespace OBS {
 
-struct ShaderParser : shader_parser {
-	inline ShaderParser() { shader_parser_init(this); }
-	inline ~ShaderParser() { shader_parser_free(this); }
-};
-
-struct ShaderProcessor {
-	gs_device_t *device;
-	ShaderParser parser;
-
-	void BuildInputLayout(std::vector<D3D11_INPUT_ELEMENT_DESC> &inputs);
-	void BuildParams(std::vector<gs_shader_param> &params);
-	void BuildSamplers(std::vector<std::unique_ptr<ShaderSampler>> &samplers);
-	void BuildString(std::string &outputString);
-	void Process(const char *shader_string, const char *file);
-
-	inline ShaderProcessor(gs_device_t *device) : device(device) {}
-};
+bool NativeEventFilter::nativeEventFilter(const QByteArray &, void *, qintptr *)
+{
+	// Stub file for operating systems that do not need nativeEventFilter
+	return false;
+}
+} // namespace OBS
