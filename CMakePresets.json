@@ -73,9 +73,15 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_LIBDIR": "lib/CMAKE_SYSTEM_PROCESSOR-linux-gnu",
         "ENABLE_AJA": false,
+        "ENABLE_BROWSER": true,
+        "ENABLE_JACK": true,
+        "ENABLE_NVENC": true,
+        "ENABLE_PIPEWIRE": true,
+        "ENABLE_V4L2": true,
         "ENABLE_VLC": true,
         "ENABLE_WAYLAND": true,
-        "ENABLE_WEBRTC": false
+        "ENABLE_WEBRTC": false,
+        "USE_XDG": true
       }
     },
     {
