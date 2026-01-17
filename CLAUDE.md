@@ -44,7 +44,10 @@ When user returns ("I'm back"):
 
 ### Shoutouts
 When user says "shoutout to [username]":
-- Use `shoutout_streamer(username)` - sends chat message and shows their clip
+- Use `shoutout_streamer(username)` - sends personalized chat message and shows their clip
+- Automatically personalizes based on broadcaster type (Partner/Affiliate), current game, and view count
+- Uses cached profile data (1-hour TTL) to reduce API calls
+- Example: "🎯 Go check out verified partner @username! They stream Castlevania. 500K+ channel views!"
 
 ### Clipping
 - **Local clip** (preferred): `obs_clip()` - uses OBS replay buffer, saves locally
@@ -81,9 +84,13 @@ When user says "shoutout to [username]":
 - **Chat**: Send messages, reply to users, read recent messages
 - **Moderation**: Ban, timeout, unban users; slow mode; emote-only mode
 - **Stream Info**: Get/set title, game/category
+- **Profile Data**: Get full streamer profiles with caching
+  - `get_streamer_profile(username)` - bio, broadcaster type, view count, profile image
+  - `get_streamer_channel_info(username)` - current game, title, language
+  - Cached for 1 hour (max 20 users) to reduce API calls
 - **Raids**: Start raids, find raid targets, cancel raids
 - **Clips**: Create clips from live stream, get clip info
-- **Shoutouts**: Shoutout streamers with their clips
+- **Shoutouts**: Personalized shoutouts based on profile data, shows clips
 
 ### Video Uploads
 - **YouTube**: Full upload support via Data API v3
