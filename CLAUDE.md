@@ -12,6 +12,20 @@ source setenv.sh
 ./run.sh
 ```
 
+## Git Rules (CRITICAL)
+
+**NEVER submit pull requests to obsproject/obs-studio upstream repo!**
+
+This is a fork for local modifications only. When committing and pushing:
+- Always use SSH remotes (git@github.com:...), never HTTPS
+- Push to `fork` remote: `git push fork <branch-name>`
+- Fork remote points to: `git@github.com:struktured-labs/obs-studio.git`
+- **struktured-labs** is the company GitHub org
+
+MCP server repo:
+- Remote: `git@github.com:struktured-labs/obs-twitch-mcp.git`
+- Push to `origin` normally
+
 ## MCP Server Location
 
 The MCP server is at `mcp-servers/obs-twitch-mcp/`. All stream control goes through this.
@@ -168,9 +182,11 @@ Required environment variables:
 
 ## Important Notes
 
+- **NEVER commit setenv.sh or API keys to git** - Always gitignored
 - Never kill OBS without explicit permission
 - Translation overlay: size 80 font, bottom-center, English only
 - Twitch channel: struktured
+- **YouTube uploads: Default to public (listed), not unlisted**
 - User-specific assets (welcome animations, profile images) are gitignored
 - Token files (.twitch_token.json, .youtube_token.json) are gitignored
 - First YouTube upload opens browser for OAuth authorization
