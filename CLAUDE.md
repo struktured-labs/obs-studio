@@ -51,6 +51,12 @@ When user says "shoutout to [username]":
 - Scene switching and management
 - Source show/hide/edit
 - Audio mute/unmute/volume control
+- **Audio filter manipulation** (real-time, no OBS restart):
+  - `obs_list_filters(source_name)` - list all filters on a source
+  - `obs_get_filter(source_name, filter_name)` - get filter settings
+  - `obs_update_filter(source_name, filter_name, settings)` - update settings live
+  - `obs_enable_filter(source_name, filter_name, enabled)` - toggle filter on/off
+  - `obs_apply_audio_preset(source_name, preset)` - apply environment presets (noisy/normal/quiet)
 - Screenshot capture
 - Replay buffer control (start, stop, save clips)
 - Recording control (start, stop, pause, resume)
@@ -74,11 +80,22 @@ When user says "shoutout to [username]":
 - **Generic router**: `upload_video(file_path, platform, title, description)`
 
 ### Live Translation
-- Capture screenshots for Japanese text OCR
-- Display English translation overlay
-- `translate_screenshot()` - capture and translate
-- `translate_and_overlay(japanese_text, english_text)` - show translation
-- `clear_translation_overlay()` - remove overlay
+- **Manual translation**: Capture screenshots, OCR, and display translation
+  - `translate_screenshot()` - capture and translate
+  - `translate_and_overlay(japanese_text, english_text)` - show translation
+  - `clear_translation_overlay()` - remove overlay
+- **Automatic background service** (5-10x faster with smart change detection):
+  - `translation_service_start(poll_interval, change_threshold)` - start automatic translation
+  - `translation_service_stop(clear_overlay)` - stop service
+  - `translation_service_status()` - get stats (API calls saved, latency, efficiency)
+  - `translation_service_configure(...)` - update settings while running
+  - Requires `ANTHROPIC_API_KEY` environment variable
+  - Features:
+    - Auto-detects dialogue box region (cached)
+    - Crops to dialogue (25x smaller images = 2-3x faster)
+    - Smart change detection (skips 60-80% of frames)
+    - Non-blocking background operation
+    - ~240-520ms translation latency (vs 700-1200ms manual)
 
 ### Alerts & Overlays
 - `show_follow_alert(username)` - follower alerts
@@ -100,10 +117,19 @@ When user says "shoutout to [username]":
 - Cowardly Irregular
 
 ### Translation Workflow
+
+**Manual mode** (original):
 1. Capture OBS screenshot via `translate_screenshot()`
 2. Claude OCRs Japanese text from game
 3. Display English translation overlay at bottom of screen
-4. Auto-update when dialogue changes
+
+**Automatic mode** (recommended for streams):
+1. Start service: `translation_service_start()`
+2. Service auto-detects dialogue box in game
+3. Monitors screenshots every 2 seconds (configurable)
+4. Translates only when dialogue changes (smart detection)
+5. Updates overlay automatically
+6. Stop service: `translation_service_stop()`
 
 ## File Structure
 
@@ -115,14 +141,18 @@ mcp-servers/obs-twitch-mcp/
 │   │   ├── chat.py      # Twitch chat tools
 │   │   ├── clips.py     # Clip/replay buffer tools
 │   │   ├── uploads.py   # Video upload tools
-│   │   ├── translation.py
+│   │   ├── translation.py  # Manual + automatic translation
 │   │   ├── alerts.py
 │   │   └── shoutout.py
 │   └── utils/           # Client implementations
 │       ├── obs_client.py
 │       ├── twitch_client.py
-│       └── youtube_client.py
+│       ├── youtube_client.py
+│       ├── vision_client.py        # Claude Vision API wrapper
+│       ├── translation_service.py  # Background translation service
+│       └── image_utils.py          # Image processing utilities
 ├── assets/              # HTML overlays and animations
+├── tmp/                 # Debug images (gitignored)
 ├── setenv.sh            # Credentials (NEVER push to git)
 └── .gitignore           # Excludes tokens and user-specific assets
 ```
@@ -134,6 +164,7 @@ Required environment variables:
 - `TWITCH_CHANNEL` (struktured)
 - `OBS_WEBSOCKET_PASSWORD`, `OBS_WEBSOCKET_PORT`
 - `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` (for YouTube uploads)
+- `ANTHROPIC_API_KEY` (for automatic translation service)
 
 ## Important Notes
 
@@ -154,6 +185,8 @@ Required environment variables:
 - `obsws-python` - OBS websocket control
 - `twitchAPI` - Twitch chat/API integration
 - `google-api-python-client` - YouTube uploads
+- `anthropic` - Claude Vision API for automatic translation
 - `pillow` - Image processing
+- `imagehash` - Perceptual hashing for translation change detection
 - `httpx` - HTTP client
 - Python 3.11+ via uv
