@@ -12,6 +12,19 @@ source setenv.sh
 ./run.sh
 ```
 
+## Installation
+
+```bash
+# Navigate to MCP server directory
+cd mcp-servers/obs-twitch-mcp
+
+# Install dependencies with uv
+uv sync
+
+# Install Playwright browsers (required for panel scraping)
+uv run playwright install chromium
+```
+
 ## Git Rules (CRITICAL)
 
 **NEVER submit pull requests to obsproject/obs-studio upstream repo!**
@@ -49,6 +62,13 @@ When user says "shoutout to [username]":
 - Uses cached profile data (1-hour TTL) to reduce API calls
 - Example: "🎯 Go check out verified partner @username! They stream Castlevania. 500K+ channel views!"
 
+### Username Fuzzy Matching
+When user mentions a viewer/streamer name (for shoutouts, profiles, etc.):
+1. First call `twitch_get_recent_messages()` to get recent chat
+2. Fuzzy match the name against usernames in chat history
+3. Use the matched username for the actual API call
+- This handles partial names, nicknames, and typos (e.g., "nahn" → "nahnegnal")
+
 ### Clipping
 - **Local clip** (preferred): `obs_clip()` - uses OBS replay buffer, saves locally
 - **Twitch clip**: `twitch_create_clip()` - creates clip on Twitch (must be live)
@@ -85,9 +105,11 @@ When user says "shoutout to [username]":
 - **Moderation**: Ban, timeout, unban users; slow mode; emote-only mode
 - **Stream Info**: Get/set title, game/category
 - **Profile Data**: Get full streamer profiles with caching
-  - `get_streamer_profile(username)` - bio, broadcaster type, view count, profile image
+  - `get_streamer_profile(username)` - bio, broadcaster type, view count, profile image, panels
   - `get_streamer_channel_info(username)` - current game, title, language
-  - Cached for 1 hour (max 20 users) to reduce API calls
+  - `get_streamer_panels(username)` - custom panels (e.g., "My Game Grimoire", "The Rig")
+  - Cached for 1 hour (max 20 users) to reduce API calls and scraping overhead
+  - Panel scraping uses Playwright (headless Chromium)
 - **Raids**: Start raids, find raid targets, cancel raids
 - **Clips**: Create clips from live stream, get clip info
 - **Shoutouts**: Personalized shoutouts based on profile data, shows clips
@@ -171,6 +193,7 @@ mcp-servers/obs-twitch-mcp/
 │       ├── youtube_client.py
 │       ├── vision_client.py        # Claude Vision API wrapper
 │       ├── translation_service.py  # Background translation service
+│       ├── panel_scraper.py        # Playwright-based Twitch panel scraper
 │       └── image_utils.py          # Image processing utilities
 ├── assets/              # HTML overlays and animations
 ├── tmp/                 # Debug images (gitignored)
@@ -189,6 +212,7 @@ Required environment variables:
 
 ## Important Notes
 
+- **Chat messages**: Always prefix messages with `«claude»` so chat knows it's from the AI, not struktured directly
 - **NEVER commit setenv.sh or API keys to git** - Always gitignored
 - Never kill OBS without explicit permission
 - Translation overlay: size 80 font, bottom-center, English only
@@ -202,6 +226,39 @@ Required environment variables:
 
 - **Flaky token auth**: Twitch token authentication can be unreliable. Sometimes requires re-running `uv run python auth.py` or restarting the MCP server. Need to investigate and improve token refresh logic.
 - **OBS replay buffer path**: `obs_clip()` sometimes returns empty file_path even when clip saves successfully
+- **Panel Editing**: Create AI-friendly markdown-based panel interface
+  - Store panel content as local markdown files (`panels/about.md`, `panels/the-rig.md`, `panels/game-grimoire.md`)
+  - Sync to Twitch via Playwright automation when user requests
+  - MCP tools: `twitch_edit_panel(name, content)`, `twitch_sync_panels()`
+  - Version control panel content in git
+  - Future: two-way sync (pull from Twitch, push to Twitch)
+
+## Troubleshooting
+
+### Panel Scraping Issues
+
+**Symptoms**: Empty panels list or timeout errors
+
+**Causes**:
+1. Playwright not installed: `uv run playwright install chromium`
+2. Twitch DOM changed: Check selectors in `src/utils/panel_scraper.py`
+3. Network issues: Check logs for timeout errors
+
+**Debug**:
+```bash
+# Test scraping
+cd mcp-servers/obs-twitch-mcp
+uv run python -c "
+from src.utils.panel_scraper import get_panel_scraper
+scraper = get_panel_scraper()
+panels = scraper.scrape_panels_sync('struktured')
+print(f'Scraped {len(panels)} panels')
+for panel in panels:
+    print(f'  - {panel[\"title\"]}: {panel[\"description\"][:50]}...')
+"
+```
+
+**Fallback**: Panel scraping failures are non-fatal. Profiles return with `panels: []`.
 
 ## Dependencies
 
@@ -212,4 +269,5 @@ Required environment variables:
 - `pillow` - Image processing
 - `imagehash` - Perceptual hashing for translation change detection
 - `httpx` - HTTP client
+- `playwright` - Browser automation for Twitch panel scraping
 - Python 3.11+ via uv
