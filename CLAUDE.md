@@ -113,6 +113,7 @@ When user mentions a viewer/streamer name (for shoutouts, profiles, etc.):
 - **Raids**: Start raids, find raid targets, cancel raids
 - **Clips**: Create clips from live stream, get clip info
 - **Shoutouts**: Personalized shoutouts based on profile data, shows clips
+- **Proactive Token Refresh**: Tokens expire after ~4 hours. The client checks expiry before each API call and refreshes automatically when within 5 minutes of expiry, avoiding failed requests. The reactive 401 retry loop is preserved as a fallback. Token expiry is tracked via `expires_at` in `.twitch_token.json`.
 
 ### Video Uploads
 - **YouTube**: Full upload support via Data API v3
@@ -224,7 +225,7 @@ Required environment variables:
 
 ## Known Issues / TODO
 
-- **Flaky token auth**: Twitch token authentication can be unreliable. Sometimes requires re-running `uv run python auth.py` or restarting the MCP server. Need to investigate and improve token refresh logic.
+- **Token auth** (partially fixed): Proactive token refresh now prevents most expiry-related failures. Tokens refresh automatically when within 5 minutes of expiry. If issues persist, run `uv run python auth.py` to re-authenticate.
 - **OBS replay buffer path**: `obs_clip()` sometimes returns empty file_path even when clip saves successfully
 - **Panel Editing**: Create AI-friendly markdown-based panel interface
   - Store panel content as local markdown files (`panels/about.md`, `panels/the-rig.md`, `panels/game-grimoire.md`)
