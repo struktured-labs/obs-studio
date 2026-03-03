@@ -213,6 +213,8 @@ Required environment variables:
 
 ## Important Notes
 
+- **Always check OBS canvas resolution before setting transforms** - Use `get_video_settings()` to get the actual base resolution. Currently 4K (3840x2160). All scene item positions and sizes must match the canvas dimensions. Browser sources at 1920x1080 need 2x scale on a 4K canvas.
+- **Audio sources (especially music) must be set to -20 dB or below** when creating new sources. Use `obs_set_volume()` to set the volume after adding music/audio to avoid blasting the stream.
 - **Chat messages**: Always prefix messages with `«claude»` so chat knows it's from the AI, not struktured directly
 - **NEVER commit setenv.sh or API keys to git** - Always gitignored
 - Never kill OBS without explicit permission
