@@ -54,6 +54,7 @@ struct screencast_portal_capture {
 
 	uint32_t pipewire_node;
 	bool cursor_visible;
+	bool initialized;
 
 	obs_pipewire *obs_pw;
 	obs_pipewire_stream *obs_pw_stream;
@@ -477,6 +478,8 @@ static bool reload_session_cb(obs_properties_t *properties, obs_property_t *prop
 
 	struct screencast_portal_capture *capture = data;
 
+	capture->initialized = true;
+
 	g_clear_pointer(&capture->restore_token, bfree);
 	g_clear_pointer(&capture->obs_pw_stream, obs_pipewire_stream_destroy);
 	g_clear_pointer(&capture->obs_pw, obs_pipewire_destroy);
@@ -519,8 +522,6 @@ static void *screencast_portal_desktop_capture_create(obs_data_t *settings, obs_
 	capture->restore_token = bstrdup(obs_data_get_string(settings, "RestoreToken"));
 	capture->source = source;
 
-	init_screencast_capture(capture);
-
 	return capture;
 }
 static void *screencast_portal_window_capture_create(obs_data_t *settings, obs_source_t *source)
@@ -532,8 +533,6 @@ static void *screencast_portal_window_capture_create(obs_data_t *settings, obs_s
 	capture->cursor_visible = obs_data_get_bool(settings, "ShowCursor");
 	capture->restore_token = bstrdup(obs_data_get_string(settings, "RestoreToken"));
 	capture->source = source;
-
-	init_screencast_capture(capture);
 
 	return capture;
 }
@@ -547,8 +546,6 @@ static void *screencast_portal_capture_create(obs_data_t *settings, obs_source_t
 	capture->cursor_visible = obs_data_get_bool(settings, "ShowCursor");
 	capture->restore_token = bstrdup(obs_data_get_string(settings, "RestoreToken"));
 	capture->source = source;
-
-	init_screencast_capture(capture);
 
 	return capture;
 }
@@ -627,12 +624,37 @@ static void screencast_portal_capture_update(void *data, obs_data_t *settings)
 		obs_pipewire_stream_set_cursor_visible(capture->obs_pw_stream, capture->cursor_visible);
 }
 
+/* The portal session is opened the first time the source is shown rather than
+ * on creation, so that loading a scene collection only raises selection
+ * dialogs for the sources that are actually on screen. */
+static void init_screencast_capture_task(void *param)
+{
+	obs_weak_source_t *weak_source = param;
+	obs_source_t *source = obs_weak_source_get_source(weak_source);
+	struct screencast_portal_capture *capture;
+
+	obs_weak_source_release(weak_source);
+	if (!source)
+		return;
+
+	capture = obs_obj_get_data(source);
+	if (capture && !capture->initialized) {
+		capture->initialized = true;
+		init_screencast_capture(capture);
+	}
+
+	obs_source_release(source);
+}
+
 static void screencast_portal_capture_show(void *data)
 {
 	struct screencast_portal_capture *capture = data;
 
 	if (capture->obs_pw_stream)
 		obs_pipewire_stream_show(capture->obs_pw_stream);
+	else if (!capture->initialized)
+		obs_queue_task(OBS_TASK_UI, init_screencast_capture_task, obs_source_get_weak_source(capture->source),
+			       false);
 }
 
 static void screencast_portal_capture_hide(void *data)
